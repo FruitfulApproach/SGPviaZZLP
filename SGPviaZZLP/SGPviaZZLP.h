@@ -16,9 +16,9 @@ template<typename Symbol>
 concept IntegralSymbol = std::is_integral_v<Symbol>;
 
 template <IntegralSymbol Symbol>
-struct SGPviaZZ_ILP		// G throughout comments
+struct SGPviaZZLP		// G throughout comments
 {
-	SGPviaZZ_ILP(const vector<Symbol>& uncompressedString);
+	SGPviaZZLP(const vector<Symbol>& uncompressedString);
 
 	// -1 => compute all substrings of length 1...|s|
 	// Value is map A -> left-to-right ordered lists of locs within G[A] the rhs
@@ -43,7 +43,7 @@ private:
 };
 
 template<IntegralSymbol Symbol>
-inline SGPviaZZ_ILP<Symbol>::SGPviaZZ_ILP(
+inline SGPviaZZLP<Symbol>::SGPviaZZLP(
 	const vector<Symbol>& uncompressedString)
 	: m_uncompressedString(uncompressedString)
 {
@@ -62,7 +62,7 @@ inline SGPviaZZ_ILP<Symbol>::SGPviaZZ_ILP(
 
 
 template<IntegralSymbol Symbol>
-inline list<StraightLineGrammar<Symbol>> SGPviaZZ_ILP<Symbol>::computeSmallestGrammars()
+inline list<StraightLineGrammar<Symbol>> SGPviaZZLP<Symbol>::computeSmallestGrammars()
 {
 	list<StraightLineGrammar> optimalGrammars;
 
@@ -76,7 +76,7 @@ inline list<StraightLineGrammar<Symbol>> SGPviaZZ_ILP<Symbol>::computeSmallestGr
 
 template<IntegralSymbol Symbol>
 inline map<vector<Symbol>, vector<size_t>>
-	SGPviaZZ_ILP<Symbol>::computeSubstringLocations(size_t maxLength)
+	SGPviaZZLP<Symbol>::computeSubstringLocations(size_t maxLength)
 {
 	Symbol& S = m_startSymbol;
 	vector<Symbol>& s = m_productionRules[S];
@@ -108,7 +108,7 @@ inline map<vector<Symbol>, vector<size_t>>
 }
 
 template<IntegralSymbol Symbol>
-inline void SGPviaZZ_ILP<Symbol>::initRulesWithRepeatingSubstrings(
+inline void SGPviaZZLP<Symbol>::initRulesWithRepeatingSubstrings(
 	const map<vector<Symbol>, vector<size_t>>& substringLocs)
 {
 	for (const auto& [substr, locations] : substringLocs)
@@ -131,7 +131,7 @@ inline void SGPviaZZ_ILP<Symbol>::initRulesWithRepeatingSubstrings(
 }
 
 template<IntegralSymbol Symbol>
-inline Symbol SGPviaZZ_ILP<Symbol>::takeNextFreeVariableSymbol()
+inline Symbol SGPviaZZLP<Symbol>::takeNextFreeVariableSymbol()
 {
 	Symbol A;
 

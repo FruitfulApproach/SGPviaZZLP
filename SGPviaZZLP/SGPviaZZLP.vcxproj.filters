@@ -18,7 +18,7 @@
     <ClCompile Include="SingletonAlphabetSGPviaZZ_ILP.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="SGPviaZZ_ILP.cpp">
+    <ClCompile Include="SGPviaZZLP.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="StraightLineGrammar.cpp">
@@ -137,7 +137,7 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="SGPviaZZ_ILP..h">
+    <ClInclude Include="SGPviaZZLP..h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="StraightLineGrammar.h">

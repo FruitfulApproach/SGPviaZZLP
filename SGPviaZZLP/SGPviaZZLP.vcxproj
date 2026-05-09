@@ -132,8 +132,8 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="SGPviaZZ_ILP.cpp" />
-    <ClCompile Include="SingletonAlphabetSGPviaZZ_ILP.cpp" />
+    <ClCompile Include="SGPviaZZLP.cpp" />
+    <ClCompile Include="SGPviaZZILP_test.cpp" />
     <ClCompile Include="StraightLineGrammar.cpp" />
     <!-- CMR library sources -->
     <ClCompile Include="third_party\cmr\src\cmr\balanced.c" />
@@ -175,7 +175,7 @@
     <ClCompile Include="third_party\cmr\src\cmr\tu.c" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="SGPviaZZ_ILP..h" />
+    <ClInclude Include="SGPviaZZLP.h" />
     <ClInclude Include="StraightLineGrammar.h" />
     <!-- CMR public headers -->
     <ClInclude Include="third_party\cmr\include\cmr\balanced.h" />
