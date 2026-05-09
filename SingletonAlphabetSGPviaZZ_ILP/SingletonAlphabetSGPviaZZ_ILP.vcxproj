@@ -24,6 +24,7 @@
     <ProjectGuid>{8c86e495-b042-49be-b7fb-660a73e21517}</ProjectGuid>
     <RootNamespace>SingletonAlphabetSGPviaZZILP</RootNamespace>
     <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
+    <ProjectName>SGPviaZZLP</ProjectName>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">

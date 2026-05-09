@@ -1,0 +1,7 @@
+<Solution>
+  <Configurations>
+    <Platform Name="x64" />
+    <Platform Name="x86" />
+  </Configurations>
+  <Project Path="SingletonAlphabetSGPviaZZ_ILP/SingletonAlphabetSGPviaZZ_ILP.vcxproj" Id="8c86e495-b042-49be-b7fb-660a73e21517" />
+</Solution>
