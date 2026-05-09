@@ -1,0 +1,6 @@
+#define CMR_CMAKE_BUILD_TYPE "Release"
+#define CMR_VERSION_MAJOR 1
+#define CMR_VERSION_MINOR 4
+#define CMR_VERSION_PATCH 0
+
+/* #undef CMR_WITH_GMP */
