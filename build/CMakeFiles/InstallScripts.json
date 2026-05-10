@@ -1,0 +1,12 @@
+{
+	"InstallScripts" : 
+	[
+		"C:/SGPviaZZLP/SGPviaZZLP/build/cmake_install.cmake",
+		"C:/SGPviaZZLP/SGPviaZZLP/build/_deps/highs-build/cmake_install.cmake",
+		"C:/SGPviaZZLP/SGPviaZZLP/build/_deps/highs-build/src/cmake_install.cmake",
+		"C:/SGPviaZZLP/SGPviaZZLP/build/_deps/highs-build/app/cmake_install.cmake",
+		"C:/SGPviaZZLP/SGPviaZZLP/build/_deps/highs-build/examples/cmake_install.cmake",
+		"C:/SGPviaZZLP/SGPviaZZLP/build/SGPviaZZLP/cmake_install.cmake"
+	],
+	"Parallel" : false
+}

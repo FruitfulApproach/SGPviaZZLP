@@ -1,0 +1,7 @@
+{
+	"InstallScripts" : 
+	[
+		"C:/SGPviaZZLP/SGPviaZZLP/build/_deps/highs-subbuild/cmake_install.cmake"
+	],
+	"Parallel" : false
+}

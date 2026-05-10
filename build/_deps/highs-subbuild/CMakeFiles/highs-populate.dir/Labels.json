@@ -1,0 +1,46 @@
+{
+	"sources" : 
+	[
+		{
+			"file" : "C:/SGPviaZZLP/SGPviaZZLP/build/_deps/highs-subbuild/CMakeFiles/highs-populate"
+		},
+		{
+			"file" : "C:/SGPviaZZLP/SGPviaZZLP/build/_deps/highs-subbuild/CMakeFiles/0453fa67b680efca3960f13cb58cc8f3/highs-populate.rule"
+		},
+		{
+			"file" : "C:/SGPviaZZLP/SGPviaZZLP/build/_deps/highs-subbuild/CMakeFiles/a3a5ed28e9a2aab377db8bfb2f08b35b/highs-populate-complete.rule"
+		},
+		{
+			"file" : "C:/SGPviaZZLP/SGPviaZZLP/build/_deps/highs-subbuild/CMakeFiles/7f3105bc9e80d5f51b096e888f17fe0e/highs-populate-build.rule"
+		},
+		{
+			"file" : "C:/SGPviaZZLP/SGPviaZZLP/build/_deps/highs-subbuild/CMakeFiles/7f3105bc9e80d5f51b096e888f17fe0e/highs-populate-configure.rule"
+		},
+		{
+			"file" : "C:/SGPviaZZLP/SGPviaZZLP/build/_deps/highs-subbuild/CMakeFiles/7f3105bc9e80d5f51b096e888f17fe0e/highs-populate-download.rule"
+		},
+		{
+			"file" : "C:/SGPviaZZLP/SGPviaZZLP/build/_deps/highs-subbuild/CMakeFiles/7f3105bc9e80d5f51b096e888f17fe0e/highs-populate-install.rule"
+		},
+		{
+			"file" : "C:/SGPviaZZLP/SGPviaZZLP/build/_deps/highs-subbuild/CMakeFiles/7f3105bc9e80d5f51b096e888f17fe0e/highs-populate-mkdir.rule"
+		},
+		{
+			"file" : "C:/SGPviaZZLP/SGPviaZZLP/build/_deps/highs-subbuild/CMakeFiles/7f3105bc9e80d5f51b096e888f17fe0e/highs-populate-patch.rule"
+		},
+		{
+			"file" : "C:/SGPviaZZLP/SGPviaZZLP/build/_deps/highs-subbuild/CMakeFiles/7f3105bc9e80d5f51b096e888f17fe0e/highs-populate-test.rule"
+		},
+		{
+			"file" : "C:/SGPviaZZLP/SGPviaZZLP/build/_deps/highs-subbuild/CMakeFiles/7f3105bc9e80d5f51b096e888f17fe0e/highs-populate-update.rule"
+		}
+	],
+	"target" : 
+	{
+		"labels" : 
+		[
+			"highs-populate"
+		],
+		"name" : "highs-populate"
+	}
+}

@@ -1,0 +1,12 @@
+prefix=C:/Program Files/SGPviaZZLP
+libdir=C:/Program Files/SGPviaZZLP/lib
+includedir=C:/Program Files/SGPviaZZLP/include/highs
+
+Name: HiGHS
+Description: Linear Optimization Software
+URL: https://github.com/ERGO-Code/HiGHS
+Version: 1.7.2
+Libs: -L${libdir} -lhighs
+#TODO Libs.private (when HiGHS lib is build as static lib)
+Cflags: -I${includedir}
+Requires:
