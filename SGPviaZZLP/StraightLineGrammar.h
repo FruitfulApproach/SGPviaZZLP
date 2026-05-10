@@ -29,13 +29,13 @@ struct StraightLineGrammar
 		return m_productionRules[var];
 	}
 
-	void setStartSymbol(Symbol S) { m_startSymbol = S; }
-	Symbol startSymbol() const { return m_startSymbol;  }
-
 	const vector<Symbol>& operator[](Symbol var) const
 	{
 		return m_productionRules.at(var);
 	}
+
+	void setStartSymbol(Symbol S) { m_startSymbol = S; }
+	Symbol startSymbol() const { return m_startSymbol; }
 
 	size_t standardSize() const {  ///< Sum of string lengths of all RHS sides of production rules, is the standard size in the literature.
 		size_t sz = 0;
@@ -53,7 +53,7 @@ struct StraightLineGrammar
 
 	vector<Symbol> nonStartRuleSymbols() const {
 		std::vector<Key> symbols;
-		symbols.reserve(map.size()-1);
+		symbols.resize(map.size()-1);
 		size_t k = 0;
 
 		for (const auto& [sym, _] : map)
@@ -70,13 +70,13 @@ struct StraightLineGrammar
 	static map<vector<Symbol>, vector<size_t>>
 		computeSubstringLocations(const vector<Symbol>& str, size_t maxLength=0);  ///< Maps each distinct substring to its occurrence positions.
 
-	void initRulesWithRepeatingSubstrings(const
-		map<vector<Symbol>, vector<size_t>>& substringLocs);  ///< Adds a production rule for each non-overlapping repeated substring.
+	static unordered_map<Symbol, vector<Symbol>>
+		StraightLineGrammar<Symbol>::repeatingSubstringRules(
+			const map<vector<Symbol>, vector<size_t>>& substringLocs);  ///< Adds a production rule for each non-overlapping repeated substring.
 
 	Symbol takeNextFreeVariableSymbol();  ///< Allocates the next variable symbol not in either alphabet.
 
-
-	bool isReducibleReady(size_t maxLength, const map<vector<Symbol>, vector<size_t>>* substringLocs = nullptr) const;
+	static bool isReducible(const map<vector<Symbol>, vector<size_t>>& substringLocs);
 
 private:
 	unordered_map<Symbol, vector<Symbol>> m_productionRules;
@@ -119,11 +119,14 @@ StraightLineGrammar<Symbol>::computeSubstringLocations(const vector<Symbol>& str
 
 	map<vector<Symbol>, vector<size_t>> substringLocs;
 
+	substringLocs[1].reserve(s.size());
+
 	for (size_t i = 0; i < s.size(); i++)
 	{
 		for (size_t length = 1; length < std::min(maxLength, s.size() - i);
 			length++)
 		{
+			// TODO: ask Claude how to use a 'string view' here to optimize performance
 			auto t = vector<Symbol>(s.begin() + i, s.begin() + i + length);
 
 			if (!substringLocs.contains(t))
@@ -144,10 +147,15 @@ StraightLineGrammar<Symbol>::computeSubstringLocations(const vector<Symbol>& str
 /// allocates a fresh variable and adds a production rule mapping that variable
 /// to the substring.  These candidate rules seed the ILP.
 template<IntegralSymbol Symbol>
-inline void StraightLineGrammar<Symbol>::initRulesWithRepeatingSubstrings(
-	const map<vector<Symbol>, vector<size_t>>& substringLocs)
+inline unordered_map<Symbol, vector<Symbol>>
+	StraightLineGrammar<Symbol>::repeatingSubstringRules(
+		const map<vector<Symbol>, vector<size_t>>& substringLocs)
 {
-	auto& G = *this;
+	pair<unordered_map<Symbol, vector<Symbol>>, unordered_map<size_t, unordered_set<Symbol>>>
+		auto repSubstrCoverage;
+
+	repSubstrCoverage[1].resize(uncompressedLength);
+
 	// TODO: would it be more optimal to use |s| = 2 => 3 or more disjoint copies needed,
 	// |s| >=3 => 2 more more disjoint copies needed?
 
@@ -162,7 +170,8 @@ inline void StraightLineGrammar<Symbol>::initRulesWithRepeatingSubstrings(
 				if (loc >= loc0 + substr.size())
 				{
 					auto A = takeNextFreeVariableSymbol();
-					G[A] = substr;
+					repSubstrCoverage[0][A] = substr;
+
 					break;
 				}
 			}
@@ -194,16 +203,17 @@ inline Symbol StraightLineGrammar<Symbol>::takeNextFreeVariableSymbol()
 }
 
 template<IntegralSymbol Symbol>
-inline bool StraightLineGrammar<Symbol>::isReducibleReady(size_t maxLength, const map<vector<Symbol>, vector<size_t>>* substringLocs) const
+inline bool StraightLineGrammar<Symbol>::isReducible(
+	const map<vector<Symbol>, vector<size_t>>& substringLocs)
 {
-	auto& G = *this;
+	StraightLineGrammar G;
 
 	if (substringLocs == nullptr)
 		substringLocs = computeSubstringLocations(maxLength);
 
 	G.initRulesWithRepeatingSubstrings(substringLocs);
 
-	if (G.numGrammarRules() == 1)
+	if (G.numGrammarRules() == 0)
 		return false;
 
 	return true;

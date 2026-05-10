@@ -28,7 +28,7 @@ struct SGPviaZZLP
 
 private:
 
-	size_t variableIndex(Symbol containerSym, Symbol coverSym, size_t maxNumCovers, size_t containerPosIndex, size_t numSystemRules) 
+	size_t variableIndex(
 	{
 		auto& G = m_grammar;
 		auto S = G.startSymbol();
@@ -51,31 +51,49 @@ private:
 
 	vector<vector<Symbol>> kSubsetListsOfSymbols(const vector<Symbol>& symbols, size_t k);
 
-private:
-	StraightLineGrammar<Symbol> m_grammar;
-	//map<vector<Symbol>, Symbol> m_productionRulesInverseMap;	// Excludes s -> S  // TODO; use if needed
+	void addSystemVariablesForSymbol(Symbol symbol);
 
-	map<Symbol, size_t> m_numSystemColumnsPerSymbol;		// Use ordered map here for determinism
+private:
+	StraightLineGrammar<Symbol> m_grammar;	
+	map<vector<Symbol>, vector<size_t>> m_substringLocs;
+	// TODO: refactor this structure throughout to be 
+	// pair<unordered_map<Symbol, vector<size_t>>, map<vector<Symbol>, Symbol>> (?)
+
+	//map<vector<Symbol>, Symbol> m_productionRulesInverseMap;	
+	// Excludes s -> S  // TODO; use if needed
 };
 
 
 /// Stores a set of 0-1 ILP variables as parallel arrays.
 /// colIndices holds the HiGHS column index for each variable;
 /// values is bit-packed (std::vector<bool> specialisation) at 1 bit per variable.
+template<IntegralSymbol Symbol>
 struct ZeroOneILPVariables
 {
-	std::vector<HighsInt> colIndices;
-	std::vector<bool>     values;
-
 	/// Registers a new binary variable with HiGHS and records its column index.
-	void add(Highs& h, double cost = 0.0)
+	void addColumn(Symbol containerSym, size_t containerPos, Symbol coverSym, 
+		Highs& h, double cost = 0.0)
 	{
 		HighsInt col = h.getNumCol();
 		h.addVar(0.0, 1.0);
 		h.changeColCostByRange(col, col, &cost);
 		h.changeColIntegrality(col, HighsVarType::kInteger);
-		colIndices.push_back(col);
-		values.push_back(false);
+
+		if (!m_multiIndexer.contains(containerSym))
+			m_multiIndexer[containerSym] = vector<map<Symbol, size_t>>{};
+
+		if (!m_multiIndexer[containerSym].contains(containerPos))
+			m_multiIndexer[containerSym][containerPos] = map<Symbol, size_t>{};
+
+		if (!m_multiIndexer[containerSym][containerPos].contains(coverSym))
+		{
+			m_multiIndexer[containerSym][containerPos][coverSym] = m_colIndices.size();
+			m_colIndices.push_back(col);
+			m_values.push_back(false);
+		}
+		else
+			// TODO: ask Claude what exception to use, possibly with more data (formatted)
+			throw std::exception("HiGHS column index doubly added to ZeroOneILPVariables struct.");
 	}
 
 	/// Populates values from the HiGHS solution after h.run().
@@ -83,14 +101,46 @@ struct ZeroOneILPVariables
 	void readSolution(const Highs& h)
 	{
 		const std::vector<double>& sol = h.getSolution().col_value;
-		for (size_t i = 0; i < colIndices.size(); i++)
-			values[i] = sol[colIndices[i]] > 0.5;
+		for (size_t i = 0; i < m_colIndices.size(); i++)
+			m_values[i] = sol[m_colIndices[i]] > 0.5;
 	}
 
-	bool   isSet(size_t i) const { return values[i]; }
-	size_t size()          const { return colIndices.size(); }
+	bool   isSet(size_t i) const { return m_values[i]; }
+	size_t size()          const { return m_colIndices.size(); }
+
+	void clear() { m_colIndices.clear(); m_values.clear(); m_multiIndexer.clear(); }
+
+	HighsInt columnIndex(Symbol containerSym, size_t containerPos, Symbol coverSym)
+	{
+		return m_colIndices[m_multiIndexer[containerSym][containerPos][coverSym]];
+	}
+
+	const vector<map<Symbol, size_t>>& operator [] (Symbol containerSym) const
+	{
+		return m_multiIndexer[containerSym];
+	}
+
+private:
+	std::vector<HighsInt> m_colIndices;
+	std::vector<bool>     m_values;
+	map<Symbol, vector<map<Symbol, size_t>>> m_multiIndexer; 
+	map<vector<Symbol>, vector<size_t>> m_substringLocs;
+	unordered_map<Symbol, vector<Symbol>> m_possibleExpandedRules;
+
+	// System variable index into a colIndices array; use ordered map here for determinism
 };
 
+/// TODO: description
+template<IntegralSymbol Symbol>
+inline void SGPviaZZLP<Symbol>::addSystemVariablesForSymbol(Symbol symbol)
+{ 
+	auto& rhs = m_grammar[symbol];
+
+	for (size_t i = 0; i < rhs.size(); i++)
+	{
+
+	}
+}
 
 /// Stores the input string and initialises the single seed production rule
 /// S -> s, where S is the first allocated variable and s is the full
@@ -112,8 +162,9 @@ inline SGPviaZZLP<Symbol>::SGPviaZZLP(
 template<IntegralSymbol Symbol>
 inline list<StraightLineGrammar<Symbol>> SGPviaZZLP<Symbol>::computeSmallestGrammars()
 {
-	auto& G = m_grammar;
 	list<StraightLineGrammar> optimalGrammars;
+	auto& G = m_grammar;	// TODO: refactor into raw map here, since we don't really use any grammar methods
+	auto S = G.startSymbol();
 
 	vector<Symbol> symbols = vector<Symbol>(m_stringAlphabet.begin(), m_stringAlphabet.end())
 		+ vector<Symbol>(m_variableAlphabet.begin(), m_variableAlphabet.end());
@@ -124,8 +175,8 @@ inline list<StraightLineGrammar<Symbol>> SGPviaZZLP<Symbol>::computeSmallestGram
 
 	// First compute all "repeating substrings of length >= 2" and place them into our workspace grammar
 	size_t maxLength = G[S].size() >> 1;	// Clearly use size / 2 as max repeatable substring length
-	auto substringLocs = StraightLineGrammar::computeSubstringLocations(G[S], maxLength);
-	initRulesWithRepeatingSubstrings(substringLocs);
+	m_substringLocs = StraightLineGrammar::computeSubstringLocations(G[S], maxLength);
+	m_possibleExpandedRules = repeatingSubstringRules(m_substringLocs);
 
 	if (g.numGramamrRules() == 1)	// Short-circuit optimization
 	{
@@ -135,27 +186,35 @@ inline list<StraightLineGrammar<Symbol>> SGPviaZZLP<Symbol>::computeSmallestGram
 
 	auto a = numRulesLowerBound();
 	auto b = numRulesUpperBound();
+	auto nonStartVariables = G.nonStartVariableSymbols();
 
-	size_t c = (a + b) >> 1;	// Take midpoint in a binary-search-like way
-
-	// Gather all non-starting rule symbols:
-	auto nonStartVariables = G.nonStartVariableSymbols(c);
-	auto cSubsetsOfVars = kSubsetListsOfSymbols(nonStartVariables, c);
-	auto S = G.startSymbol();
-
-	unordered_map<Symbol, vector<Symbol>*> grammarRulePtrs;		// Here we use pointers, as strings can become HUGE in practice
-
-	grammarRulePtrs[S] = &G[S];			//  Always include this rule of course
-	m_numSystemColumnsPerSymbol[S] = c * ;
-
-	// In-place construct each test grammar
-	for (const auto& varSet : cSubsetsOfVars)
+	for (size_t c = a; c <= b; c++) 
 	{
-		for (Symbol A : varSet)
+		// Gather all non-starting rule symbols:		
+		auto cSubsetsOfVars = kSubsetListsOfSymbols(nonStartVariables, c);
+
+		// Keep track of purely terminal T-> t rule sizes, where t is not reducible.
+		size_t constantCostSum = 0;
+
+		// In-place construct each test grammar
+		for (const auto& varSet : cSubsetsOfVars)
 		{
-			grammarRulePtrs[A] = &G[A];
-			auto substringLocs1 = StraightLineGrammar::computeSubstringLocations(G[A], maxLength);
-			m_numSystemColumnsPerSymbol[A] = substringLocs
+			// Add in variables for substring covers of containerSym = S always
+			addSystemVariablesForSymbol(S);
+
+			for (Symbol A : varSet)
+			{
+				auto substringLocs1 = StraightLineGrammar::computeSubstringLocations(G[A], maxLength);
+				
+				if (! StraightLineGrammar::isReducible(substringLocs1))
+				{
+					constantCostSum += G[A].size();
+				}
+				else {
+					// Add in variables for substring covers of containerSym = A
+					addSystemVariablesForSymbol(A);
+				}
+			}
 		}
 	}
 }
