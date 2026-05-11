@@ -10,59 +10,9 @@
 #include <list>
 #include "StraightLineGrammar.h"
 #include <Highs.h>
+#include <ranges>
 
 using namespace std;
-struct ZeroOneILPVariables;
-
-/// Solves the Smallest Grammar Problem (SGP) for a given input string via
-/// integer linear programming over ZZ (the integers).  The template parameter
-/// Symbol must be an integral type whose values partition into a string
-/// alphabet (the symbols that appear in the raw input) and a variable alphabet
-/// (fresh symbols allocated by the solver).  Referred to as G in comments.
-template <IntegralSymbol Symbol>
-struct SGPviaZZLP
-{
-	SGPviaZZLP(const vector<Symbol>& uncompressedString);  ///< Seeds the grammar with the single rule S -> s.
-
-	list<StraightLineGrammar<Symbol>> computeSmallestGrammars();  ///< Returns all smallest grammars for the input string.
-
-private:
-
-	size_t variableIndex(
-	{
-		auto& G = m_grammar;
-		auto S = G.startSymbol();
-		sym -= S;	// Translate everything down to zero based, since (string) alphabet symbols occupy the first indices
-		algoChoiceSym -= S;
-
-	}
-
-	size_t numRulesUpperBound() const {
-		auto& G = m_grammar;
-		auto S = G.startSymbol();
-		return (size_t)log2(G[S].size());
-	}
-
-	size_t numRulesLowerBound() const {
-		// Returning simply 1 implies the grammar starting string isn't compressible at all, so return 2.
-		return 2; // TODO: see responses to:
-		// https://cstheory.stackexchange.com/questions/57119/what-are-the-theoretic-upper-lower-bounds-on-the-sizes-of-the-exact-smallest
-	}
-
-	vector<vector<Symbol>> kSubsetListsOfSymbols(const vector<Symbol>& symbols, size_t k);
-
-	void addSystemVariablesForSymbol(Symbol symbol);
-
-private:
-	StraightLineGrammar<Symbol> m_grammar;	
-	map<vector<Symbol>, vector<size_t>> m_substringLocs;
-	// TODO: refactor this structure throughout to be 
-	// pair<unordered_map<Symbol, vector<size_t>>, map<vector<Symbol>, Symbol>> (?)
-
-	//map<vector<Symbol>, Symbol> m_productionRulesInverseMap;	
-	// Excludes s -> S  // TODO; use if needed
-};
-
 
 /// Stores a set of 0-1 ILP variables as parallel arrays.
 /// colIndices holds the HiGHS column index for each variable;
@@ -71,7 +21,7 @@ template<IntegralSymbol Symbol>
 struct ZeroOneILPVariables
 {
 	/// Registers a new binary variable with HiGHS and records its column index.
-	void addColumn(Symbol containerSym, size_t containerPos, Symbol coverSym, 
+	void addColumn(Symbol containerSym, size_t containerPos, Symbol coverSym,
 		Highs& h, double cost = 0.0)
 	{
 		HighsInt col = h.getNumCol();
@@ -123,102 +73,83 @@ struct ZeroOneILPVariables
 private:
 	std::vector<HighsInt> m_colIndices;
 	std::vector<bool>     m_values;
-	map<Symbol, vector<map<Symbol, size_t>>> m_multiIndexer; 
-	map<vector<Symbol>, vector<size_t>> m_substringLocs;
-	unordered_map<Symbol, vector<Symbol>> m_possibleExpandedRules;
-
+	map<Symbol, vector<map<Symbol, size_t>>> m_multiIndexer;
 	// System variable index into a colIndices array; use ordered map here for determinism
 };
+
+
+/// Solves the Smallest Grammar Problem (SGP) for a given input string via
+/// integer linear programming over ZZ (the integers).  The template parameter
+/// Symbol must be an integral type whose values partition into a string
+/// alphabet (the symbols that appear in the raw input) and a variable alphabet
+/// (fresh symbols allocated by the solver).  Referred to as G in comments.
+template <IntegralSymbol Symbol>
+struct SGPviaZZLP
+{
+	
+	SGPviaZZLP(const vector<Symbol>& uncompressedString)
+		: m_uncompressedString(uncompressedString)
+	{ }
+
+	list<StraightLineGrammar<Symbol>> computeSmallestGrammars();  ///< Returns all smallest grammars for the input string.
+
+private:
+	/// Based on elementary argument that a singleton alphabet grammar can 
+	/// be formed that roughly doubles the rhs for "each rule" +/- a terminal. letter.
+	size_t numRulesUpperBound() const {
+		auto& G = m_grammar;
+		auto S = G.startSymbol();
+		return (size_t)log2(G[S].size());
+	}
+
+	/// Returning simply 1 implies the string isn't compressible at all, 
+	/// so return 2.
+	size_t numRulesLowerBound() const {
+		
+		return 2; 
+	}
+
+	Symbol takeNextFreeVariableSymbol();  ///< Allocates the next variable symbol not in either alphabet.
+
+	void addSystemVariablesForSymbol(Symbol symbol);
+
+	static vector<vector<Symbol>> kSubsetListsOfSymbols(const vector<Symbol>& symbols, size_t k);
+
+	static map<vector<Symbol>, vector<size_t>>
+		substringLocations(const vector<Symbol>& str, size_t maxLength = 0);  ///< Maps each distinct substring to its occurrence positions.
+
+	static unordered_map<Symbol, vector<Symbol>>
+		StraightLineGrammar<Symbol>::repeatingSubstringRules(
+			const map<vector<Symbol>, vector<size_t>>& substringLocs);  ///< Adds a production rule for each non-overlapping repeated substring.
+
+private:
+	const vector<Symbol>& m_uncompressedString;
+	set<Symbol> m_stringAlphabet;
+	set<Symbol> m_variableAlphabet;
+	map<vector<Symbol>, vector<size_t>> m_substringLocs;
+	unordered_map<Symbol, vector<Symbol>> m_possibleExpandedRules;
+	Symbol m_startSymbol;
+
+	//map<vector<Symbol>, Symbol> m_productionRulesInverseMap;	
+	// Excludes s -> S  // TODO; use if needed
+};
+
 
 /// TODO: description
 template<IntegralSymbol Symbol>
 inline void SGPviaZZLP<Symbol>::addSystemVariablesForSymbol(Symbol symbol)
 { 
-	auto& rhs = m_grammar[symbol];
 
-	for (size_t i = 0; i < rhs.size(); i++)
-	{
-
-	}
 }
 
 /// Stores the input string and initialises the single seed production rule
 /// S -> s, where S is the first allocated variable and s is the full
 /// uncompressed string.
 template<IntegralSymbol Symbol>
-inline SGPviaZZLP<Symbol>::SGPviaZZLP(
-	const vector<Symbol>& uncompressedString)
-	: m_grammar(uncompressedString)
+inline SGPviaZZLP<Symbol>::SGPviaZZLP(const vector<Symbol>& uncompressedString)
 {
+	m_uncompressedString = uncompressedString;
 }
-
-
-/// Returns every smallest straight-line grammar that generates the input
-/// string up to some standardization equivalences.  Multiple grammars are returned when 
-/// there are ties in grammar size under the ILP objective, and there typically are ties.
-/// See for example:
-/// s = a^6, you have both {S->AA; A->aaa} vs {S->BBB; B->aa} each of size 5.
-/// 
-template<IntegralSymbol Symbol>
-inline list<StraightLineGrammar<Symbol>> SGPviaZZLP<Symbol>::computeSmallestGrammars()
-{
-	list<StraightLineGrammar> optimalGrammars;
-	auto& G = m_grammar;	// TODO: refactor into raw map here, since we don't really use any grammar methods
-	auto S = G.startSymbol();
-
-	vector<Symbol> symbols = vector<Symbol>(m_stringAlphabet.begin(), m_stringAlphabet.end())
-		+ vector<Symbol>(m_variableAlphabet.begin(), m_variableAlphabet.end());
-	// Assumes string symbol < variable symbol lexicographically;  since both alphabets
-	// are `set`, they come already sorted lexicographically.
-
-	auto S = G.startSymbol();
-
-	// First compute all "repeating substrings of length >= 2" and place them into our workspace grammar
-	size_t maxLength = G[S].size() >> 1;	// Clearly use size / 2 as max repeatable substring length
-	m_substringLocs = StraightLineGrammar::computeSubstringLocations(G[S], maxLength);
-	m_possibleExpandedRules = repeatingSubstringRules(m_substringLocs);
-
-	if (g.numGramamrRules() == 1)	// Short-circuit optimization
-	{
-		optimalGrammars.insert(G);
-		return optimalGrammars;		// There is no way to compress using a smaller straight-line grammar
-	}
-
-	auto a = numRulesLowerBound();
-	auto b = numRulesUpperBound();
-	auto nonStartVariables = G.nonStartVariableSymbols();
-
-	for (size_t c = a; c <= b; c++) 
-	{
-		// Gather all non-starting rule symbols:		
-		auto cSubsetsOfVars = kSubsetListsOfSymbols(nonStartVariables, c);
-
-		// Keep track of purely terminal T-> t rule sizes, where t is not reducible.
-		size_t constantCostSum = 0;
-
-		// In-place construct each test grammar
-		for (const auto& varSet : cSubsetsOfVars)
-		{
-			// Add in variables for substring covers of containerSym = S always
-			addSystemVariablesForSymbol(S);
-
-			for (Symbol A : varSet)
-			{
-				auto substringLocs1 = StraightLineGrammar::computeSubstringLocations(G[A], maxLength);
-				
-				if (! StraightLineGrammar::isReducible(substringLocs1))
-				{
-					constantCostSum += G[A].size();
-				}
-				else {
-					// Add in variables for substring covers of containerSym = A
-					addSystemVariablesForSymbol(A);
-				}
-			}
-		}
-	}
-}
-
 
 template<IntegralSymbol Symbol>
 inline vector<vector<Symbol>> SGPviaZZLP<Symbol>::kSubsetListsOfSymbols(const vector<Symbol>& symbols, size_t k)
@@ -240,4 +171,214 @@ inline vector<vector<Symbol>> SGPviaZZLP<Symbol>::kSubsetListsOfSymbols(const ve
 	} 
 	while (next_permutation(selector.begin(), selector.end()));
 	return result;
+}
+
+
+/// Returns a map from every distinct substring of the start-rule RHS to the
+/// sorted list of start positions at which it occurs.  If maxLength is 0
+/// (the default) all substring lengths up to |s| are considered; otherwise
+/// only lengths 1..maxLength are enumerated.
+template<IntegralSymbol Symbol>
+inline map<vector<Symbol>, vector<size_t>>
+SGPviaZZLP<Symbol>::substringLocations(const vector<Symbol>& str, size_t maxLength)
+{
+	auto& G = *this;
+	auto& s = str;
+
+	if (maxLength == 0)
+		maxLength = s.size();
+
+	map<vector<Symbol>, vector<size_t>> substringLocs;
+
+	substringLocs[1].reserve(s.size());
+
+	for (size_t i = 0; i < s.size(); i++)
+	{
+		for (size_t length = 1; length < std::min(maxLength, s.size() - i);
+			length++)
+		{
+			// TODO: ask Claude how to use a 'string view' here to optimize performance
+			auto t = vector<Symbol>(s.begin() + i, s.begin() + i + length);
+
+			if (!substringLocs.contains(t))
+			{
+				substringLocs.insert(t, vector<size_t>{i});
+			}
+			else {
+				substringLocs[t].push_back(i);
+			}
+		}
+	}
+
+	return substringLocs;
+}
+
+
+/// For each substring that occurs at two or more non-overlapping positions,
+/// allocates a fresh variable and adds a production rule mapping that variable
+/// to the substring.  These candidate rules seed the ILP.
+template<IntegralSymbol Symbol>
+inline unordered_map<Symbol, vector<Symbol>>
+SGPviaZZLP<Symbol>::repeatingSubstringRules(
+	const map<vector<Symbol>, vector<size_t>>& substringLocs)
+{
+	pair<unordered_map<Symbol, vector<Symbol>>, unordered_map<size_t, unordered_set<Symbol>>>
+		auto repSubstrCoverage;
+
+	repSubstrCoverage[1].resize(uncompressedLength);
+
+	// TODO: would it be more optimal to use |s| = 2 => 3 or more disjoint copies needed,
+	// |s| >=3 => 2 more more disjoint copies needed?
+
+	for (const auto& [substr, locations] : substringLocs)
+	{
+		if (substr.size() >= 2)
+		{
+			auto loc0 = locations[0];
+
+			for (size_t loc : locations)
+			{
+				if (loc >= loc0 + substr.size())
+				{
+					auto A = takeNextFreeVariableSymbol();
+					repSubstrCoverage[0][A] = substr;
+
+					break;
+				}
+			}
+		}
+	}
+}
+
+/// Allocates and returns the next symbol not already in either alphabet,
+/// choosing the smallest non-negative integer that avoids collisions with the
+/// string alphabet.  The new symbol is inserted into m_variableAlphabet.
+template<IntegralSymbol Symbol>
+inline Symbol SGPviaZZLP<Symbol>::takeNextFreeVariableSymbol()
+{
+	Symbol A;
+
+	if (m_variableAlphabet.size() == 0)
+		A = 0;
+	else {
+		A = *m_variableAlphabet.rbegin();
+		A++;
+	}
+
+	while (m_stringAlphabet.contains(A))
+		A++;
+
+	m_variableAlphabet.insert(A);
+
+	return A;
+}
+
+//template<IntegralSymbol Symbol>
+//inline bool SGPviaZZLP<Symbol>::isReducible(
+//	const map<vector<Symbol>, vector<size_t>>& substringLocs, )
+//{
+//	StraightLineGrammar G;
+//
+//	G.initRulesWithRepeatingSubstrings(substringLocs);
+//
+//	if (G.numGrammarRules() == 0)
+//		return false;
+//
+//	return true;
+//}
+
+//template<IntegralSymbol Symbol>
+//vector<Symbol> SGPviaZZLP<Symbol>::nonStartRuleSymbols() const
+//{
+//	std::vector<Key> symbols;
+//	symbols.resize(map.size() - 1);
+//	size_t k = 0;
+//
+//	for (const auto& [sym, _] : )
+//	{
+//		if (sym != m_startSymbol)
+//			symbols[k] = sym;
+//
+//		k++;
+//	}
+//
+//	return symbols;
+//}
+
+
+/// Returns every smallest straight-line grammar that generates the input
+/// string up to some standardization equivalences.  Multiple grammars are returned when 
+/// there are ties in grammar size under the ILP objective, and there typically are ties.
+/// See for example:
+/// s = a^6, you have both {S->AA; A->aaa} vs {S->BBB; B->aa} each of size 5.
+/// 
+template<IntegralSymbol Symbol>
+inline list<StraightLineGrammar<Symbol>> SGPviaZZLP<Symbol>::computeSmallestGrammars()
+{
+	const auto& s = m_uncompressedString;
+	const Symbol S = m_startSymbol = takeNextFreeVariableSymbol();		// Start symbol
+	list<StraightLineGrammar> optimalGrammars;
+
+	// Build the terminal alphabet
+	for (auto sym : s)
+	{
+		if (! m_stringAlphabet.constains(sym))
+			m_stringAlphabet.insert(sym);
+	}
+
+	//vector<Symbol> symbols = vector<Symbol>(m_stringAlphabet.begin(), m_stringAlphabet.end())
+	//	+ vector<Symbol>(m_variableAlphabet.begin(), m_variableAlphabet.end());
+	// Assumes string symbol < variable symbol lexicographically;  since both alphabets
+	// are `set`, they come already sorted lexicographically.
+
+	// First compute all "repeating substrings of length >= 2" and place them into our workspace grammar
+	size_t maxLength = s.size() >> 1;	// Clearly use size / 2 as max repeatable substring length
+	auto& L = m_substringLocs = StraightLineGrammar::substringLocations(s, maxLength);
+	auto& R = m_possibleExpandedRules = repeatingSubstringRules(L);
+
+	if (R.size() == 0)	// Short-circuit optimization
+	{
+		StraightLineGrammar G;
+		G[S] = s;
+		optimalGrammars.insert(G);
+		return optimalGrammars;		// There is no way to compress using a smaller straight-line grammar
+	}
+
+	auto a = numRulesLowerBound();
+	auto b = std::min(numRulesUpperBound(), R.size());		// Take minimum, because |R| could be less actually
+
+	auto nonStartVariables = m_productionRules | std::views::keys | std::ranges::to<std::vector>();
+	
+	// TODO: try replacing with some kind of binary search in the interval [a,b]
+	for (size_t k = a; k <= b; k++)
+	{
+		// Gather all non-starting rule symbols:		
+		auto kSubsetsOfVars = kSubsetListsOfSymbols(nonStartVariables, k);
+
+		// Keep track of purely terminal T-> t rule sizes, where t is not reducible.
+		size_t constantCostSum = 0;
+
+		// In-place construct each test grammar
+		for (const auto& varSet : kSubsetsOfVars)
+		{
+			// Add in variables for substring covers of containerSym = S always
+			addSystemVariablesForSymbol(S);
+
+			for (Symbol A : varSet)
+			{
+
+
+				//auto substringLocs1 = substringLocations(G[A], maxLength);
+
+				//if (!isReducible(substringLocs1))
+				//{
+				//	constantCostSum += m_possibleExpandedRules[A].size();
+				//}
+				//else {
+				//	// Add in variables for substring covers of containerSym = A
+				//	addSystemVariablesForSymbol(A);
+				//}
+			}
+		}
+	}
 }
