@@ -136,9 +136,9 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="EveryExactSmallestGrammar.cpp" />
     <ClCompile Include="main.cpp" />
     <!-- CMR library sources -->
-    <ClCompile Include="SGPviaZZLP.cpp" />
     <ClCompile Include="third_party\cmr\src\cmr\balanced.c" />
     <ClCompile Include="third_party\cmr\src\cmr\bipartite_graph.c" />
     <ClCompile Include="third_party\cmr\src\cmr\block_decomposition.c" />
@@ -177,6 +177,8 @@
     <ClCompile Include="third_party\cmr\src\cmr\tu.c" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="EveryExactSmallestGrammar.h" />
+    <ClInclude Include="SGPAlgorithm.h" />
     <ClInclude Include="SGPviaZZLP.h" />
     <ClInclude Include="StraightLineGrammar.h" />
     <!-- CMR public headers -->

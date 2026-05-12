@@ -4,6 +4,8 @@
 #include <map>
 #include <vector>
 #include <set>
+#include <type_traits>
+#include <concepts>
 
 using namespace std;
 
@@ -11,8 +13,12 @@ template<typename Symbol>
 concept IntegralSymbol = std::is_integral_v<Symbol>;
 
 template<IntegralSymbol Symbol>
-struct StraightLineGrammar
+using GrammarString = vector<Symbol>;
+
+template<IntegralSymbol Symbol>
+class StraightLineGrammar
 {
+public:
 	StraightLineGrammar() {}
 
 	/// Copy ctor
@@ -34,24 +40,17 @@ struct StraightLineGrammar
 	void setStartSymbol(Symbol S) { m_startSymbol = S; }
 	Symbol startSymbol() const { return m_startSymbol; }
 
-	size_t standardSize() const {  ///< Sum of string lengths of all RHS sides of production rules, is the standard size in the literature.
+	size_t size() const {  ///< Sum of string lengths of all RHS sides of production rules, is the standard size in the literature.
 		size_t sz = 0;
 		for (const auto& [_, rhs] : m_productionRules)
 			sz += rhs.size();
 		return sz;
 	}
 
-	size_t compressionSize() const {  ///< Clearly some grammars could potentially have smaller data compression size, but be equal in standard size
-		return -1;
-		// TODO
-	}
-
-	size_t numGrammarRules() const { return m_productionRules.size(); }
-
-
+	size_t ruleCount() const { return m_productionRules.size(); }
 
 private:
-	unordered_map<Symbol, vector<Symbol>> m_productionRules;
+	unordered_map<Symbol, GrammarString> m_productionRules;
 	Symbol m_startSymbol;
 };
 
