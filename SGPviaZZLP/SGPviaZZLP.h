@@ -118,8 +118,7 @@ private:
 	static map<vector<Symbol>, vector<size_t>>
 		substringLocations(const vector<Symbol>& str, size_t maxLength = 0);  ///< Maps each distinct substring to its occurrence positions.
 
-	static unordered_map<Symbol, vector<Symbol>>
-		StraightLineGrammar<Symbol>::repeatingSubstringRules(
+	static unordered_map<Symbol, vector<Symbol>> repeatingSubstringRules(
 			const map<vector<Symbol>, vector<size_t>>& substringLocs);  ///< Adds a production rule for each non-overlapping repeated substring.
 
 private:
