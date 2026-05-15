@@ -3,11 +3,26 @@
 #include <unordered_map>
 #include <map>
 #include <vector>
+#include <span>
 #include <set>
 #include <type_traits>
 #include <concepts>
+#include <algorithm>
 
 using namespace std;
+
+/// Transparent lexicographic comparator: allows std::map heterogeneous lookup
+/// so we can find a GrammarString<Symbol> key using a GrammarStringView<Symbol>
+/// without materializing a vector copy on every lookup.
+struct GrammarStringLess
+{
+	using is_transparent = void;
+	template<typename A, typename B>
+	bool operator()(const A& a, const B& b) const
+	{
+		return std::lexicographical_compare(a.begin(), a.end(), b.begin(), b.end());
+	}
+};
 
 template<typename Symbol>
 concept IntegralSymbol = std::is_integral_v<Symbol>;
@@ -16,43 +31,64 @@ template<IntegralSymbol Symbol>
 using GrammarString = vector<Symbol>;
 
 template<IntegralSymbol Symbol>
+using GrammarStringView = std::span<const Symbol>;
+
+template<IntegralSymbol Symbol>
 class StraightLineGrammar
 {
+private:
+	unordered_map<Symbol, GrammarString<Symbol>> P;		// Production rules map: variable symbol -> rhs string (which may contain both terminal and variable symbols)
+	Symbol S;	// Start symbol
+	set<Symbol> strAlpha;	// Alphabet of all chars seen occuring in s
+	set<Symbol> varAlpha;	// Alphabet of rule variable symbols (the lhs of a production rule)
+
 public:
+	/// Default ctor is a completely empty grammar, with no production rules and no start symbol.  
 	StraightLineGrammar() {}
 
 	/// Copy ctor
 	StraightLineGrammar(const StraightLineGrammar& src)
-		: m_productionRules(src.m_productionRules), m_startRule(src.m_startRule),
+		: P(src.P), S(src.S), strAlph(src.strAlpha), varAlpha(src.varAlpha)
 	{
 	}
 
-	vector<Symbol>& operator[](Symbol var)
+	/// For setting the rhs string of the production rule for variable var. 
+	/// Throws if var is not a variable in the grammar.
+	GrammarString& operator[](Symbol var)
 	{
-		return m_productionRules[var];
+		return P[var];
 	}
 
-	const vector<Symbol>& operator[](Symbol var) const
+	/// Rhs string of the production rule for variable var.  Throws if var is not a variable in the grammar.
+	const GrammarString& operator[](Symbol var) const
 	{
-		return m_productionRules.at(var);
+		return P.at(var);
 	}
 
-	void setStartSymbol(Symbol S) { m_startSymbol = S; }
-	Symbol startSymbol() const { return m_startSymbol; }
+	/// Set the start symbol of the grammar.
+	void setStartSymbol(Symbol S) { this->S = S; }
+	
+	/// Get the start symbol of the grammar.
+	Symbol startSymbol() const { return S; }
 
-	size_t size() const {  ///< Sum of string lengths of all RHS sides of production rules, is the standard size in the literature.
+	/// Return the standard size of the grammar, which is the sum of the string lengths of all rhs sides of 
+	/// production rules.  This is the standard size measure in the literature, and is what we optimize 
+	/// for in the ILP formulation.  If you want to change this, for example your compression format is
+	/// not exactly this size, then subclass StraightLineGrammar and override this method to compute the 
+	/// size according to your needs.  For example, you might want to add a fixed cost per rule. 
+	size_t size() const {  
 		size_t sz = 0;
-		for (const auto& [_, rhs] : m_productionRules)
+		for (const auto& [_, rhs] : P)
 			sz += rhs.size();
 		return sz;
 	}
 
-	size_t ruleCount() const { return m_productionRules.size(); }
-
-private:
-	unordered_map<Symbol, GrammarString> m_productionRules;
-	Symbol m_startSymbol;
+	/// Returns the number of production rules that define this grammar.  Should always equal the number 
+	/// of variables in the grammar, since each variable is defined by exactly one production rule in any
+	/// straight-line grammar, by definition.
+	size_t ruleCount() const { return P.size(); }
 };
+
 
 
 

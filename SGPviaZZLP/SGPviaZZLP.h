@@ -123,11 +123,11 @@ private:
 
 private:
 	const vector<Symbol>& m_uncompressedString;
-	set<Symbol> m_stringAlphabet;
-	set<Symbol> m_variableAlphabet;
+	set<Symbol> strAlpha;
+	set<Symbol> varAlpha;
 	map<vector<Symbol>, vector<size_t>> m_substringLocs;
 	unordered_map<Symbol, vector<Symbol>> m_possibleExpandedRules;
-	Symbol m_startSymbol;
+	Symbol S;
 
 	//map<vector<Symbol>, Symbol> m_productionRulesInverseMap;	
 	// Excludes s -> S  // TODO; use if needed
@@ -257,17 +257,17 @@ inline Symbol SGPviaZZLP<Symbol>::takeNextFreeVariableSymbol()
 {
 	Symbol A;
 
-	if (m_variableAlphabet.size() == 0)
+	if (varAlpha.size() == 0)
 		A = 0;
 	else {
-		A = *m_variableAlphabet.rbegin();
+		A = *varAlpha.rbegin();
 		A++;
 	}
 
-	while (m_stringAlphabet.contains(A))
+	while (strAlpha.contains(A))
 		A++;
 
-	m_variableAlphabet.insert(A);
+	varAlpha.insert(A);
 
 	return A;
 }
@@ -315,14 +315,14 @@ template<IntegralSymbol Symbol>
 inline list<StraightLineGrammar<Symbol>> SGPviaZZLP<Symbol>::computeSmallestGrammars()
 {
 	const auto& s = m_uncompressedString;
-	const Symbol S = m_startSymbol = takeNextFreeVariableSymbol();		// Start symbol
+	const Symbol S = S = takeNextFreeVariableSymbol();		// Start symbol
 	list<StraightLineGrammar> optimalGrammars;
 
 	// Build the terminal alphabet
 	for (auto sym : s)
 	{
-		if (! m_stringAlphabet.constains(sym))
-			m_stringAlphabet.insert(sym);
+		if (! strAlpha.constains(sym))
+			strAlpha.insert(sym);
 	}
 
 	//vector<Symbol> symbols = vector<Symbol>(m_stringAlphabet.begin(), m_stringAlphabet.end())
@@ -346,7 +346,7 @@ inline list<StraightLineGrammar<Symbol>> SGPviaZZLP<Symbol>::computeSmallestGram
 	auto a = numRulesLowerBound();
 	auto b = std::min(numRulesUpperBound(), R.size());		// Take minimum, because |R| could be less actually
 
-	auto nonStartVariables = m_productionRules | std::views::keys | std::ranges::to<std::vector>();
+	auto nonStartVariables = P | std::views::keys | std::ranges::to<std::vector>();
 	
 	// TODO: try replacing with some kind of binary search in the interval [a,b]
 	for (size_t k = a; k <= b; k++)
