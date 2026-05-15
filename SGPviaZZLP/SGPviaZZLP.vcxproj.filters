@@ -194,7 +194,7 @@
     <ClInclude Include="third_party\cmr\include\cmr\tu.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="EveryExactSmallestGrammar.h">
+    <ClInclude Include="ZeroOneILPAlgorithm.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="SGPAlgorithm.h">

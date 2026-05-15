@@ -55,7 +55,7 @@ public:
 		substringIndices(const GrammarString<Symbol>& str, size_t maxLen = 0);		
 	
 	/// The set of possible (and fully expanded) rules R to r that could occur in some smallest grammar for s
-	virtual unordered_map<Symbol, GrammarStringView<Symbol>> 
+	virtual map<Symbol, GrammarStringView<Symbol>> 
 		substringRules(const map<GrammarString<Symbol>, vector<size_t>, GrammarStringLess>& indices);	
 
 	/// Compute substring covers, which are the possible ways to cover s with the rules in R.  
@@ -66,7 +66,7 @@ public:
 	vector<set<Symbol>> substringSymbolCovers(
 		const GrammarStringView<Symbol>& t,
 		const map<GrammarString<Symbol>, vector<size_t>, GrammarStringLess>& indices,
-		const unordered_map<Symbol, GrammarStringView<Symbol>>& rules);
+		const map<Symbol, GrammarStringView<Symbol>>& rules);
 };
 
 template<IntegralSymbol Symbol>
@@ -167,10 +167,10 @@ inline map<GrammarString<Symbol>, vector<size_t>, GrammarStringLess> SGPAlgorith
 }
 
 template<IntegralSymbol Symbol>
-inline unordered_map<Symbol, GrammarStringView<Symbol>> SGPAlgorithm<Symbol>
+inline map<Symbol, GrammarStringView<Symbol>> SGPAlgorithm<Symbol>
 	::substringRules(const map<GrammarString<Symbol>, vector<size_t>, GrammarStringLess>& indices)
 {
-	unordered_map<Symbol, GrammarStringView<Symbol>> expandedRules;
+	map<Symbol, GrammarStringView<Symbol>> expandedRules;
 
 	for (const auto& [substr, locations] : indices)
 	{
@@ -198,20 +198,28 @@ template<IntegralSymbol Symbol>
 inline vector<set<Symbol>> SGPAlgorithm<Symbol>::substringSymbolCovers(
 	const GrammarStringView<Symbol>& t,
 	const map<GrammarString<Symbol>, vector<size_t>, GrammarStringLess>& indices, 
-	const unordered_map<Symbol, GrammarStringView<Symbol>>& rules)
+	const map<Symbol, GrammarStringView<Symbol>>& rules)
 {
-	vector<set<Symbol>> covers(t.systemMatrixSize());
+	vector<set<Symbol>> covers(t.size());
 
-	for (const auto& [var, rhs] : rules)
+	for (size_t i = 0; i < t.size(); i++)
 	{
-		auto it = indices.find(rhs);
+		covers[i] = set<Symbol>{ t[i] };	// Be sure to include the terminal symbol at position i.
 
-		if (it != indices.end())
+		for (const auto& [var, rhs] : rules)
 		{
-			for (size_t loc : it->second)
+			auto it = indices.find(rhs);
+
+			if (it != indices.end())
 			{
-				for (size_t i = loc; i < loc + rhs.systemMatrixSize(); i++)
-					covers[i].insert(var);
+				for (size_t loc : it->second)
+				{
+					if (loc <= i && i < loc + rhs.size())
+					{
+						covers[i].insert(var);
+						break;
+					}
+				}
 			}
 		}
 	}

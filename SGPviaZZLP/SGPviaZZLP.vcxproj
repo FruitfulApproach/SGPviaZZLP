@@ -177,7 +177,7 @@
     <ClCompile Include="third_party\cmr\src\cmr\tu.c" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="EveryExactSmallestGrammar.h" />
+    <ClInclude Include="ZeroOneILPAlgorithm.h" />
     <ClInclude Include="SGPAlgorithm.h" />
     <ClInclude Include="StraightLineGrammar.h" />
     <!-- CMR public headers -->

@@ -87,6 +87,28 @@ public:
 	/// of variables in the grammar, since each variable is defined by exactly one production rule in any
 	/// straight-line grammar, by definition.
 	size_t ruleCount() const { return P.systemMatrixSize(); }
+
+	/// Add a variable symbol to the variable alphabet, so that it can be used in production rules.  
+	/// Throws if var is in the string alphabet.
+	void addToVariableAlphabet(Symbol var) 
+	{
+		if (strAlpha.contains(var))
+			throw std::logic_error(std::format(
+				"Cannot add variable symbol {} to variable alphabet because it is already in the string alphabet.", var));
+		varAlpha.insert(var);
+	}
+
+	/// Add a terminal string's symbols to the string alphabet, so that it can be used in production rules.
+	void addToStringAlphabet(const GrammarString<Symbol>& str) 
+	{
+		for (Symbol sym : str)
+		{
+			if (varAlpha.contains(sym))
+				throw std::logic_error(std::format(
+					"Cannot add terminal symbol {} to string alphabet because it is already in the variable alphabet.", sym));
+			strAlpha.insert(sym);
+		}
+	}
 };
 
 

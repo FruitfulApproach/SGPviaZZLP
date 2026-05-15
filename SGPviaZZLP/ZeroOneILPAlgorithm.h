@@ -64,7 +64,6 @@ protected:
 	/// Get the HiGHS column index for the variable corresponding to the given 
 	/// container symbol, position, and cover symbol.
 	HighsInt systemColumnIndex(Symbol containerSym, size_t containerPos, Symbol coverSym);
-
 };
 
 template<IntegralSymbol Symbol>
@@ -91,7 +90,10 @@ inline list<StraightLineGrammar<Symbol>> ZeroOneILPAlgorithm<Symbol>::computeSma
 		{
 			varSubset.push_front(S);	// Every grammar must include the start symbol, so add it to every subset of variables we consider.
 
-			unordered_map<Symbol, GrammarStringView<Symbol>> ruleChoices;
+			map<Symbol, GrammarStringView<Symbol>> ruleChoices;
+
+			for (Symbol A : varSubset)
+				ruleChoices[A] = substrRules[A];
 
 			for (Symbol A : varSubset)
 			{
@@ -104,7 +106,6 @@ inline list<StraightLineGrammar<Symbol>> ZeroOneILPAlgorithm<Symbol>::computeSma
 					for (Symbol coverSym : symbolCovers[i])
 						addSystemColumn(A, i, coverSym, h, 1.0);
 				}
-
 			}
 
 			// TU dispatch: if requested and the matrix is TU, relax integrality so HiGHS
@@ -131,6 +132,22 @@ inline list<StraightLineGrammar<Symbol>> ZeroOneILPAlgorithm<Symbol>::computeSma
 			}
 
 			h.run();
+			readSystemSolution(h);
+
+			StraightLineGrammar<Symbol> G;
+			G.addToStringAlphabet(s);
+			G.addToVariableAlphabet(S);
+			
+			for (Symbol A : varSubset)
+			{
+				auto& rhs = G[A] = GrammarString<Symbol>{};
+							
+				// L.O.H. = left off here
+
+				G.addToVariableAlphabet(A);
+			}
+
+			results.push_back(G);   // No, have to check if irreducible and if of minimum size
 
 			clearSystemColumns();
 		}
