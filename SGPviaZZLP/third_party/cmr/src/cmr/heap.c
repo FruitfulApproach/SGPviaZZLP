@@ -13,7 +13,7 @@ CMR_ERROR CMRintheapInitStack(CMR* cmr, CMR_INTHEAP* heap, int memKeys)
   assert(memKeys > 0);
 
   heap->memKeys = memKeys;
-  heap->size = 0;
+  heap->systemMatrixSize = 0;
   heap->positions = NULL;
   CMR_CALL( CMRallocStackArray(cmr, &heap->positions, memKeys) );
   for (int i = 0; i < memKeys; ++i)
@@ -64,16 +64,16 @@ CMR_ERROR CMRintheapInsert(CMR_INTHEAP* heap, int key, int value)
   assert(heap);
   assert(key >= 0);
   assert(key < heap->memKeys);
-  assert(heap->size < heap->memKeys);
+  assert(heap->systemMatrixSize < heap->memKeys);
 
   CMRdbgMsg(20, "Heap insert: %d->%d.\n", key, value);
 
-  heap->data[heap->size] = key;
-  heap->positions[key] = heap->size;
+  heap->data[heap->systemMatrixSize] = key;
+  heap->positions[key] = heap->systemMatrixSize;
   heap->values[key] = value;
 
   int currentKey = key;
-  int current = heap->size;
+  int current = heap->systemMatrixSize;
   int currentValue = value;
   while (current > 0)
   {
@@ -93,7 +93,7 @@ CMR_ERROR CMRintheapInsert(CMR_INTHEAP* heap, int key, int value)
     currentValue = parentValue;
   }
 
-  ++heap->size;
+  ++heap->systemMatrixSize;
 
   debugHeap(heap);
 
@@ -150,8 +150,8 @@ CMR_ERROR CMRintheapDecreaseInsert(CMR_INTHEAP* heap, int key, int newValue)
   }
   else
   {
-    current = heap->size;
-    heap->size++;
+    current = heap->systemMatrixSize;
+    heap->systemMatrixSize++;
     heap->positions[key] = current;
     heap->data[current] = key;
   }
@@ -187,23 +187,23 @@ int CMRintheapExtractMinimum(CMR_INTHEAP* heap)
 
   int extracted = heap->data[0];
   heap->positions[extracted] = -1;
-  heap->data[0] = heap->data[heap->size - 1];
+  heap->data[0] = heap->data[heap->systemMatrixSize - 1];
   heap->positions[heap->data[0]] = 0;
-  --heap->size;
+  --heap->systemMatrixSize;
 
   CMRdbgMsg(20, "Heap extract: %d->%d.\n", extracted, heap->values[extracted]);
 
   int current = 0;
   int currentKey = heap->data[0];
   int currentValue = heap->values[currentKey];
-  while (2*current+1 < heap->size)
+  while (2*current+1 < heap->systemMatrixSize)
   {
     int left = 2*current + 1;
     int right = left+1;
     int leftKey = heap->data[left];
     int leftValue = heap->values[leftKey];
-    int rightKey = right < heap->size ? heap->data[right] : -1;
-    int rightValue = right < heap->size ? heap->values[rightKey] : INT_MAX;
+    int rightKey = right < heap->systemMatrixSize ? heap->data[right] : -1;
+    int rightValue = right < heap->systemMatrixSize ? heap->values[rightKey] : INT_MAX;
     if (leftValue < rightValue)
     {
       if (currentValue <= leftValue)

@@ -15,7 +15,7 @@ extern "C" {
 
 typedef struct
 {
-  int size;       /**< \brief Current size of the heap. */
+  int systemMatrixSize;       /**< \brief Current size of the heap. */
   int memKeys;    /**< \brief Memory for keys. */
   int* values;    /**< \brief Array that maps keys to values. */
   int* positions; /**< \brief Array that maps keys to heap positions. */
@@ -80,7 +80,7 @@ bool CMRintheapEmpty(
   CMR_INTHEAP* heap  /**< Heap pointer. */
 )
 {
-  return heap->size == 0;
+  return heap->systemMatrixSize == 0;
 }
 
 /**

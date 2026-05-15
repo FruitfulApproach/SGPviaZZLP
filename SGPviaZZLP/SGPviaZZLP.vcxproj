@@ -179,7 +179,6 @@
   <ItemGroup>
     <ClInclude Include="EveryExactSmallestGrammar.h" />
     <ClInclude Include="SGPAlgorithm.h" />
-    <ClInclude Include="SGPviaZZLP.h" />
     <ClInclude Include="StraightLineGrammar.h" />
     <!-- CMR public headers -->
     <ClInclude Include="third_party\cmr\include\cmr\balanced.h" />

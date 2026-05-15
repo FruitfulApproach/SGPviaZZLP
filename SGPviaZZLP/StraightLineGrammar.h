@@ -76,17 +76,17 @@ public:
 	/// for in the ILP formulation.  If you want to change this, for example your compression format is
 	/// not exactly this size, then subclass StraightLineGrammar and override this method to compute the 
 	/// size according to your needs.  For example, you might want to add a fixed cost per rule. 
-	size_t size() const {  
+	size_t systemMatrixSize() const {  
 		size_t sz = 0;
 		for (const auto& [_, rhs] : P)
-			sz += rhs.size();
+			sz += rhs.systemMatrixSize();
 		return sz;
 	}
 
 	/// Returns the number of production rules that define this grammar.  Should always equal the number 
 	/// of variables in the grammar, since each variable is defined by exactly one production rule in any
 	/// straight-line grammar, by definition.
-	size_t ruleCount() const { return P.size(); }
+	size_t ruleCount() const { return P.systemMatrixSize(); }
 };
 
 

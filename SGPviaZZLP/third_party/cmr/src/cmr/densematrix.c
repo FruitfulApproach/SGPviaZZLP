@@ -14,14 +14,14 @@ CMR_ERROR CMRdensebinmatrixCreate(CMR* cmr, size_t numRows, size_t numColumns, D
   CMR_CALL( CMRallocBlock(cmr, presult) );
   DenseBinaryMatrix* matrix = *presult;
   
-  size_t size = (numRows * numColumns + (8 * sizeof(size_t)) - 1) / (8 * sizeof(size_t));
+  size_t systemMatrixSize = (numRows * numColumns + (8 * sizeof(size_t)) - 1) / (8 * sizeof(size_t));
   CMRdbgMsg(10, "Creating %zux%zu DenseBinaryMatrix using %zu blocks each of which having %zu bytes.\n", numRows,
-    numColumns, size, sizeof(size_t));
+    numColumns, systemMatrixSize, sizeof(size_t));
   matrix->numRows = numRows;
   matrix->numColumns = numColumns;
   matrix->data = NULL;
-  CMR_CALL( CMRallocBlockArray(cmr, &matrix->data, size) );
-  for (size_t i = 0; i < size; ++i)
+  CMR_CALL( CMRallocBlockArray(cmr, &matrix->data, systemMatrixSize) );
+  for (size_t i = 0; i < systemMatrixSize; ++i)
     matrix->data[i] = (size_t) 0;
 
   return CMR_OKAY;

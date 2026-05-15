@@ -79,22 +79,22 @@ CMR_ERROR CMRfreeEnvironment(CMR** pcmr)
   return CMR_OKAY;
 }
 
-CMR_ERROR _CMRallocBlock(CMR* cmr, void** ptr, size_t size)
+CMR_ERROR _CMRallocBlock(CMR* cmr, void** ptr, size_t systemMatrixSize)
 {
   CMR_UNUSED(cmr);
 
   assert(cmr);
   assert(ptr);
   assert(*ptr == NULL);
-  *ptr = malloc(size);
+  *ptr = malloc(systemMatrixSize);
 
   return *ptr ? CMR_OKAY : CMR_ERROR_MEMORY;
 }
 
-CMR_ERROR _CMRfreeBlock(CMR* cmr, void** ptr, size_t size)
+CMR_ERROR _CMRfreeBlock(CMR* cmr, void** ptr, size_t systemMatrixSize)
 {
   CMR_UNUSED(cmr);
-  CMR_UNUSED(size);
+  CMR_UNUSED(systemMatrixSize);
 
   assert(cmr);
   assert(ptr);
@@ -105,38 +105,38 @@ CMR_ERROR _CMRfreeBlock(CMR* cmr, void** ptr, size_t size)
   return CMR_OKAY;
 }
 
-CMR_ERROR _CMRallocBlockArray(CMR* cmr, void** ptr, size_t size, size_t length)
+CMR_ERROR _CMRallocBlockArray(CMR* cmr, void** ptr, size_t systemMatrixSize, size_t length)
 {
   CMR_UNUSED(cmr);
 
   assert(cmr);
   assert(ptr);
   assert(*ptr == NULL);
-  *ptr = malloc(size * length);
+  *ptr = malloc(systemMatrixSize * length);
 
   return *ptr ? CMR_OKAY : CMR_ERROR_MEMORY;
 }
 
 
-CMR_ERROR _CMRreallocBlockArray(CMR* cmr, void** ptr, size_t size, size_t length)
+CMR_ERROR _CMRreallocBlockArray(CMR* cmr, void** ptr, size_t systemMatrixSize, size_t length)
 {
   CMR_UNUSED(cmr);
 
   assert(cmr);
   assert(ptr);
-  *ptr = realloc(*ptr, size * length);
+  *ptr = realloc(*ptr, systemMatrixSize * length);
 
   return *ptr ? CMR_OKAY : CMR_ERROR_MEMORY;
 }
 
-CMR_ERROR _CMRduplicateBlockArray(CMR* cmr, void** ptr, size_t size, size_t length, void* source)
+CMR_ERROR _CMRduplicateBlockArray(CMR* cmr, void** ptr, size_t systemMatrixSize, size_t length, void* source)
 {
   assert(cmr);
   assert(ptr);
   assert(source);
 
-  CMR_CALL( _CMRallocBlockArray(cmr, ptr, size, length) );
-  size_t numBytes = size*length;
+  CMR_CALL( _CMRallocBlockArray(cmr, ptr, systemMatrixSize, length) );
+  size_t numBytes = systemMatrixSize*length;
   for (size_t i = 0; i < numBytes; ++i)
     ((char*)(*ptr))[i] = ((char*)source)[i];
 
@@ -209,20 +209,20 @@ size_t CMRgetStackUsage(CMR* cmr)
 CMR_ERROR _CMRallocStack(
   CMR* cmr,
   void** ptr,
-  size_t size
+  size_t systemMatrixSize
 )
 {
   assert(cmr);
   assert(ptr);
   assert(*ptr == NULL);
 
-  assert(("Tried to allocate at least 1 TB." == 0) || size < ((size_t)1 << 40)); /* We should not allocate more than a terabyte. */
+  assert(("Tried to allocate at least 1 TB." == 0) || systemMatrixSize < ((size_t)1 << 40)); /* We should not allocate more than a terabyte. */
 
   /* Avoid allocation of zero bytes. */
-  if (size < 4)
-    size = 4;
+  if (systemMatrixSize < 4)
+    systemMatrixSize = 4;
 
-  size_t requiredSpace = size + sizeof(void*);
+  size_t requiredSpace = systemMatrixSize + sizeof(void*);
 #if !defined(NDEBUG)
   requiredSpace += sizeof(int);
 #endif /* !NDEBUG */
@@ -265,14 +265,14 @@ CMR_ERROR _CMRallocStack(
   /* The chunk fits into the last stack. */
 
   CMR_STACK* pstack = &cmr->stacks[cmr->currentStack];
-  pstack->top -= size;
+  pstack->top -= systemMatrixSize;
   *ptr = &pstack->memory[pstack->top];
 #if !defined(NDEBUG)
   pstack->top -= sizeof(int);
   *((int*) &pstack->memory[pstack->top]) = PROTECTION;
 #endif /* !NDEBUG */
   pstack->top -= sizeof(void*);
-  *((size_t*) &pstack->memory[pstack->top]) = size;
+  *((size_t*) &pstack->memory[pstack->top]) = systemMatrixSize;
 
 #if defined(DEBUG_STACK)
   printf("Writing size %zu to %p.\n", size, &pstack->memory[pstack->top]);
@@ -289,7 +289,7 @@ CMR_ERROR _CMRfreeStack(CMR* cmr, void** ptr)
 
   CMR_STACK* stack = &cmr->stacks[cmr->currentStack];
   CMRdbgMsg(0, "CMRfreeStack called for pointer %p. Last stack is %d.\n", *ptr, cmr->currentStack);
-  size_t size = *((size_t*) &stack->memory[stack->top]);
+  size_t systemMatrixSize = *((size_t*) &stack->memory[stack->top]);
 
 #if defined(DEBUG_STACK)
   printf("CMRfreeStack() called for %zu bytes (size stored at %p).\n", size,
@@ -297,7 +297,7 @@ CMR_ERROR _CMRfreeStack(CMR* cmr, void** ptr)
   fflush(stdout);
 #endif /* DEBUG_STACK */
 
-  assert(size < (FIRST_STACK_SIZE << cmr->numStacks));
+  assert(systemMatrixSize < (FIRST_STACK_SIZE << cmr->numStacks));
 
 #if !defined(NDEBUG)
   if (*((int*) (&stack->memory[stack->top] + sizeof(void*))) != PROTECTION)
@@ -314,12 +314,12 @@ CMR_ERROR _CMRfreeStack(CMR* cmr, void** ptr)
   {
     fprintf(stderr,
       "Wrong order of CMRfreeStack(Array) detected. Top chunk on stack has size %zu!\n",
-      size);
+      systemMatrixSize);
     fflush(stderr);
   }
 #endif /* !NDEBUG */
 
-  stack->top += size + sizeof(void*);
+  stack->top += systemMatrixSize + sizeof(void*);
 #if !defined(NDEBUG)
   stack->top += sizeof(int);
 #endif /* !NDEBUG */
@@ -352,11 +352,11 @@ void CMRassertStackConsistency(
     while (ptr < (char*)stack->memory + STACK_SIZE(s))
     {
       CMRdbgMsg(4, "pointer is %p.", ptr);
-      size_t size = *((size_t*) ptr);
-      CMRdbgMsg(0, " It indicates a chunk of size %d.\n", size);
+      size_t systemMatrixSize = *((size_t*) ptr);
+      CMRdbgMsg(0, " It indicates a chunk of size %d.\n", systemMatrixSize);
       ptr += sizeof(size_t*);
       assert(*((int*)ptr) == PROTECTION);
-      ptr += size + sizeof(int);
+      ptr += systemMatrixSize + sizeof(int);
     }
   }
 }

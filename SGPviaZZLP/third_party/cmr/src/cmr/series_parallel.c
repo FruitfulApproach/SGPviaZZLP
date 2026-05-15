@@ -129,15 +129,15 @@ static
 CMR_ERROR createElementData(
   CMR* cmr,                   /**< \ref CMR environment. */
   ElementData** pelementData, /**< Pointer for storing the element data. */
-  size_t size                 /**< Number of elements. */
+  size_t systemMatrixSize                 /**< Number of elements. */
 )
 {
   assert(cmr);
   assert(pelementData);
 
-  CMR_CALL( CMRallocStackArray(cmr, pelementData, size) );
+  CMR_CALL( CMRallocStackArray(cmr, pelementData, systemMatrixSize) );
   ElementData* elementData = *pelementData;
-  for (size_t e = 0; e < size; ++e)
+  for (size_t e = 0; e < systemMatrixSize; ++e)
   {
     elementData[e].hashValue = 0;
     elementData[e].hashEntry = SIZE_MAX;
@@ -152,15 +152,15 @@ static
 CMR_ERROR createHashVector(
   CMR* cmr,                 /**< \ref CMR environment. */
   long long** phashVector,  /**< Pointer for storing the hash vector. */
-  size_t size               /**< Size of hash vector. */
+  size_t systemMatrixSize               /**< Size of hash vector. */
 )
 {
   assert(cmr);
 
-  CMR_CALL( CMRallocStackArray(cmr, phashVector, size) );
+  CMR_CALL( CMRallocStackArray(cmr, phashVector, systemMatrixSize) );
   long long* hashVector = *phashVector;
   size_t h = 1;
-  for (size_t e = 0; e < size; ++e)
+  for (size_t e = 0; e < systemMatrixSize; ++e)
   {
     hashVector[e] = h;
 #if defined(CMR_DEBUG_REDUCTION)

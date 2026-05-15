@@ -5,10 +5,10 @@
 #include <assert.h>
 #include <stdlib.h>
 
-#define MOVE_ELEMENT(source, target, size) \
+#define MOVE_ELEMENT(source, target, systemMatrixSize) \
   do \
   { \
-    size_t __size = (size); \
+    size_t __size = (systemMatrixSize); \
     char* __s = (source); \
     char* __t = (target); \
     do \

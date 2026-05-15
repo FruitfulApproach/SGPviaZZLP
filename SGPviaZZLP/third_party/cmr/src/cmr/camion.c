@@ -564,8 +564,8 @@ CMR_ERROR constructNonCamionSubmatrix(
 
   assert((sizeTrace1 + sizeTrace2) % 2 == 0);
 
-  size_t size = (sizeTrace1 + sizeTrace2) / 2;
-  CMR_CALL( CMRsubmatCreate(cmr, size, size, psubmatrix) );
+  size_t systemMatrixSize = (sizeTrace1 + sizeTrace2) / 2;
+  CMR_CALL( CMRsubmatCreate(cmr, systemMatrixSize, systemMatrixSize, psubmatrix) );
   CMR_SUBMAT* submatrix = *psubmatrix;
   submatrix->numRows = 0;
   submatrix->numColumns = 0;

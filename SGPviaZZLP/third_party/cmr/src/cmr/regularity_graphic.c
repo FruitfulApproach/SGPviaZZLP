@@ -728,15 +728,15 @@ static
 CMR_ERROR createHashVector(
   CMR* cmr,                 /**< \ref CMR environment. */
   long long** phashVector,  /**< Pointer for storing the hash vector. */
-  size_t size               /**< Size of hash vector. */
+  size_t systemMatrixSize               /**< Size of hash vector. */
 )
 {
   assert(cmr);
 
-  CMR_CALL( CMRallocStackArray(cmr, phashVector, size) );
+  CMR_CALL( CMRallocStackArray(cmr, phashVector, systemMatrixSize) );
   long long* hashVector = *phashVector;
   size_t h = 1;
-  for (size_t e = 0; e < size; ++e)
+  for (size_t e = 0; e < systemMatrixSize; ++e)
   {
     hashVector[e] = h;
     h = projectSignedHash(3 * h);

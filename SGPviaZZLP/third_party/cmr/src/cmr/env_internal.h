@@ -84,7 +84,7 @@ CMR_EXPORT
 CMR_ERROR _CMRallocStack(
   CMR* cmr,     /**< \ref CMR environment. */
   void** ptr, /**< Pointer where the space shall be allocated. */
-  size_t size /**< Space to allocate. */
+  size_t systemMatrixSize /**< Space to allocate. */
 );
 
 /**

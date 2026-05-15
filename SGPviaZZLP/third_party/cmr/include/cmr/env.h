@@ -124,7 +124,7 @@ CMR_ERROR CMRfreeEnvironment(
  */
 
 CMR_EXPORT
-CMR_ERROR _CMRallocBlock(CMR* cmr, void** ptr, size_t size);
+CMR_ERROR _CMRallocBlock(CMR* cmr, void** ptr, size_t systemMatrixSize);
 
 /**
  * \brief Frees a block memory chunk allocated with \ref CMRallocBlock.
@@ -140,7 +140,7 @@ CMR_ERROR _CMRallocBlock(CMR* cmr, void** ptr, size_t size);
  */
 
 CMR_EXPORT
-CMR_ERROR _CMRfreeBlock(CMR* cmr, void** ptr, size_t size);
+CMR_ERROR _CMRfreeBlock(CMR* cmr, void** ptr, size_t systemMatrixSize);
 
 /**
  * \brief Allocates block memory for an array of chunks.
@@ -160,7 +160,7 @@ CMR_ERROR _CMRfreeBlock(CMR* cmr, void** ptr, size_t size);
  */
 
 CMR_EXPORT
-CMR_ERROR _CMRallocBlockArray(CMR* cmr, void** ptr, size_t size, size_t length);
+CMR_ERROR _CMRallocBlockArray(CMR* cmr, void** ptr, size_t systemMatrixSize, size_t length);
 
 /**
  * \brief Reallocates block memory of an array of chunks.
@@ -179,7 +179,7 @@ CMR_ERROR _CMRallocBlockArray(CMR* cmr, void** ptr, size_t size, size_t length);
  */
 
 CMR_EXPORT
-CMR_ERROR _CMRreallocBlockArray(CMR* cmr, void** ptr, size_t size, size_t length);
+CMR_ERROR _CMRreallocBlockArray(CMR* cmr, void** ptr, size_t systemMatrixSize, size_t length);
 
 /**
  * \brief Allocates block memory for an array of chunks and copies it from \p source.
@@ -199,7 +199,7 @@ CMR_ERROR _CMRreallocBlockArray(CMR* cmr, void** ptr, size_t size, size_t length
  */
 
 CMR_EXPORT
-CMR_ERROR _CMRduplicateBlockArray(CMR* cmr, void** ptr, size_t size, size_t length, void* source);
+CMR_ERROR _CMRduplicateBlockArray(CMR* cmr, void** ptr, size_t systemMatrixSize, size_t length, void* source);
 
 /**
  * \brief Carries out the deallocation for \ref CMRfreeBlockArray.

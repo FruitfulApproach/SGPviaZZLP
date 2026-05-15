@@ -39,13 +39,34 @@ public:
 	/// k-sized subsets of set of symbols represented as vector
 	virtual vector<vector<Symbol>> kSubsetsOfSymbols(size_t k, const vector<Symbol>& symbols);		
 	
-	/// Indexes within s of substrings of size <= maxLen, or |s| if maxLen = 0
+	/// Get all substrings of 1 <= length <= maxLen, and the sorted list of start positions
+	/// at which they occur within s. If maxLen is 0, then all substring lengths up to |s| are considered.  
+	/// Note that the number of substrings is O(n^2) in the worst case, so this method is expensive for large strings, 
+	/// and should be used with care.  For example, for s = a^n, you have n - l + 1 occurrences of each substring 
+	/// of length l, and there are n - l + 1 such substrings.
+	/// 
+	/// Optimization: use "string views" here to avoid materializing a vector copy of the 
+	/// substring on every iteration, which is very expensive.  Instead we can just use 
+	/// a view into the original string, and the transparent comparator will allow us to 
+	/// find it in the map without copying it.   Especially important for large strings, 
+	/// where the number of substrings is O(n^2) and we copy typically substrings of length
+	/// O(n) in the wrost case.
 	virtual map<GrammarString<Symbol>, vector<size_t>, GrammarStringLess> 
 		substringIndices(const GrammarString<Symbol>& str, size_t maxLen = 0);		
 	
 	/// The set of possible (and fully expanded) rules R to r that could occur in some smallest grammar for s
 	virtual unordered_map<Symbol, GrammarStringView<Symbol>> 
-		substringRules(const map<GrammarString<Symbol>, vector<size_t>, GrammarStringLess>& indices);		
+		substringRules(const map<GrammarString<Symbol>, vector<size_t>, GrammarStringLess>& indices);	
+
+	/// Compute substring covers, which are the possible ways to cover s with the rules in R.  
+	/// This is a key step in the ILP formulation (EveryexactSmallestGrammar subclass) for computing the smallest grammar, 
+	/// and is also useful for other algorithms.  Since we are given a set of possible rules R, we can encode the result
+	/// of this function using the strictly the variable symbols in R (its keys), and forget about the (possibly large)
+	/// actual substrings for now.
+	vector<set<Symbol>> substringCovers(
+		const GrammarStringView<Symbol>& t,
+		const map<GrammarString<Symbol>, vector<size_t>, GrammarStringLess>& indices,
+		const unordered_map<Symbol, GrammarStringView<Symbol>>& rules);
 };
 
 template<IntegralSymbol Symbol>
@@ -59,7 +80,7 @@ inline SGPAlgorithm<Symbol>::SGPAlgorithm(const GrammarString<Symbol>& algorithm
 template<IntegralSymbol Symbol>
 inline size_t SGPAlgorithm<Symbol>::maximumRuleCount() const
 {
-	return (size_t)log2(s.size());
+	return (size_t)log2(s.systemMatrixSize());
 }
 
 template<IntegralSymbol Symbol>
@@ -73,7 +94,7 @@ inline Symbol SGPAlgorithm<Symbol>::takeNextFreeVariable()
 {
 	Symbol A;
 
-	if (varAlpha.size() == 0)
+	if (varAlpha.systemMatrixSize() == 0)
 		A = 0;
 	else {
 		A = *varAlpha.rbegin();
@@ -98,7 +119,7 @@ inline vector<vector<Symbol>> SGPAlgorithm<Symbol>::kSubsetsOfSymbols(size_t k, 
 		subset.reserve(k);
 		size_t j = 0;
 
-		for (size_t i = 0; i < v.size(); i++)
+		for (size_t i = 0; i < v.systemMatrixSize(); i++)
 		{
 			if (selector[i]) {
 				subset[j] = v[i];
@@ -110,18 +131,7 @@ inline vector<vector<Symbol>> SGPAlgorithm<Symbol>::kSubsetsOfSymbols(size_t k, 
 	return result;
 }
 
-/// Get all substrings of 1 <= length <= maxLen, and the sorted list of start positions
-/// at which they occur within s. If maxLen is 0, then all substring lengths up to |s| are considered.  
-/// Note that the number of substrings is O(n^2) in the worst case, so this method is expensive for large strings, 
-/// and should be used with care.  For example, for s = a^n, you have n - l + 1 occurrences of each substring 
-/// of length l, and there are n - l + 1 such substrings.
-/// 
-/// Optimization: use "string views" here to avoid materializing a vector copy of the 
-/// substring on every iteration, which is very expensive.  Instead we can just use 
-/// a view into the original string, and the transparent comparator will allow us to 
-/// find it in the map without copying it.   Especially important for large strings, 
-/// where the number of substrings is O(n^2) and we copy typically substrings of length
-/// O(n) in the wrost case.
+
 template<IntegralSymbol Symbol>
 inline map<GrammarString<Symbol>, vector<size_t>, GrammarStringLess> SGPAlgorithm<Symbol>
 	::substringIndices(const GrammarString<Symbol>& str, size_t maxLen)
@@ -129,13 +139,13 @@ inline map<GrammarString<Symbol>, vector<size_t>, GrammarStringLess> SGPAlgorith
 	auto& s = str;
 
 	if (maxLen == 0)
-		maxLen = s.size();
+		maxLen = s.systemMatrixSize();
 
 	map<GrammarString<Symbol>, vector<size_t>, GrammarStringLess> indices;
 
-	for (size_t i = 0; i < s.size(); i++)
+	for (size_t i = 0; i < s.systemMatrixSize(); i++)
 	{
-		const size_t maxL = std::min(maxLen, s.size() - i);
+		const size_t maxL = std::min(maxLen, s.systemMatrixSize() - i);
 		for (size_t length = 1; length <= maxL; length++)
 		{
 			GrammarStringView<Symbol> tview(s.data() + i, length);		
@@ -164,13 +174,13 @@ inline unordered_map<Symbol, GrammarStringView<Symbol>> SGPAlgorithm<Symbol>
 
 	for (const auto& [substr, locations] : indices)
 	{
-		if (substr.size() >= 2)
+		if (substr.systemMatrixSize() >= 2)
 		{
 			auto loc0 = locations[0];
 
 			for (size_t loc : locations)
 			{
-				if (loc >= loc0 + substr.size())
+				if (loc >= loc0 + substr.systemMatrixSize())
 				{
 					auto A = takeNextFreeVariableSymbol();
 					expandedRules.emplace(A, GrammarStringView<Symbol>(substr));
@@ -182,4 +192,29 @@ inline unordered_map<Symbol, GrammarStringView<Symbol>> SGPAlgorithm<Symbol>
 	}
 
 	return expandedRules;
+}
+
+template<IntegralSymbol Symbol>
+inline vector<set<Symbol>> SGPAlgorithm<Symbol>::substringCovers(
+	const GrammarStringView<Symbol>& t,
+	const map<GrammarString<Symbol>, vector<size_t>, GrammarStringLess>& indices, 
+	const unordered_map<Symbol, GrammarStringView<Symbol>>& rules)
+{
+	vector<set<Symbol>> covers(t.systemMatrixSize());
+
+	for (const auto& [var, rhs] : rules)
+	{
+		auto it = indices.find(rhs);
+
+		if (it != indices.end())
+		{
+			for (size_t loc : it->second)
+			{
+				for (size_t i = loc; i < loc + rhs.systemMatrixSize(); i++)
+					covers[i].insert(var);
+			}
+		}
+	}
+
+	return covers;
 }
