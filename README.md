@@ -4,6 +4,8 @@ There currently exists no quality and open source, and in particular EXACT, solu
 This is based upon my own ideas and research.  For getting the integer linear programming part to work, I will be using Claude Opus 4.7 + ATLAS or some other recommended highly optimized linear algebra (LA) library.   However, the idea on how to turn the SGP into a 0-1 integer linear program is quite straight-forward and does not require advanced group theory (GT) or anything like that.  However, to find symmetries in the problem and thus further optimize the exact algorithm, one should definitely appeal to GT methods for analyzing the symmetries.
 
 
+
+## Ignore the following notes for now, they're just for me:
 __Global SGP Approximation Algorithm Notes__
 
 This is for large strings such that even a Quasipolynomial-time algorithm would take seemingly ever to compress.
