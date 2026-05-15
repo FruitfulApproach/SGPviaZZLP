@@ -63,7 +63,7 @@ public:
 	/// and is also useful for other algorithms.  Since we are given a set of possible rules R, we can encode the result
 	/// of this function using the strictly the variable symbols in R (its keys), and forget about the (possibly large)
 	/// actual substrings for now.
-	vector<set<Symbol>> substringCovers(
+	vector<set<Symbol>> substringSymbolCovers(
 		const GrammarStringView<Symbol>& t,
 		const map<GrammarString<Symbol>, vector<size_t>, GrammarStringLess>& indices,
 		const unordered_map<Symbol, GrammarStringView<Symbol>>& rules);
@@ -195,7 +195,7 @@ inline unordered_map<Symbol, GrammarStringView<Symbol>> SGPAlgorithm<Symbol>
 }
 
 template<IntegralSymbol Symbol>
-inline vector<set<Symbol>> SGPAlgorithm<Symbol>::substringCovers(
+inline vector<set<Symbol>> SGPAlgorithm<Symbol>::substringSymbolCovers(
 	const GrammarStringView<Symbol>& t,
 	const map<GrammarString<Symbol>, vector<size_t>, GrammarStringLess>& indices, 
 	const unordered_map<Symbol, GrammarStringView<Symbol>>& rules)

@@ -78,61 +78,63 @@ inline list<StraightLineGrammar<Symbol>> ZeroOneILPAlgorithm<Symbol>::computeSma
 #endif
 	h.changeObjectiveSense(ObjSense::kMinimize);			// Smallest grammar => minimize sum of selected cover-variable costs.
 
-	auto substrInds = substringIndices(s, s.systemMatrixSize() >> 1);		// Max. size for any repeating substring is clearly |s|/2
-	auto substrRules = substringRules(substrInds);
-	auto startSymbolCovers = substringCovers(s, substrInds, substrRules);
+	auto maxSubstrLen = s.size() >> 1;		// Max. size for any repeating substring is clearly |s|/2
+	auto substrInds = substringIndices(s, maxSubstrLen);		
+	auto substrRules = substringRules(sSubstrInds);
 
-	for (size_t k = minimumRuleCount(); k <= maximumRuleCount(); k++)
+	for (size_t k = minimumRuleCount() - 1; k < maximumRuleCount(); k++)	// -1 to discount the start symbol
 	{
-		clearSystemColumns();
+		auto kSymbolSubsets = kSubsetsOfSymbols(k,
+			vector<Symbol>(++varAlpha.begin(), varAlpha.end()));	// ++ to skip the start symbol
 
-	// Initialize the HiGHS model with the start rule covers
-	for (size_t i = 0; i < startSymbolCovers.systemMatrixSize(); i++)
-	{
-		for (Symbol coverSym : startSymbolCovers[i])
+		for (auto& varSubset : kSymbolSubsets)
 		{
-			addSystemColumn(S, i, coverSym, h, 1.0);
-		}
-	}
+			varSubset.push_front(S);	// Every grammar must include the start symbol, so add it to every subset of variables we consider.
 
-	// Finish initilizing, in order, the HiGHS model with the covers for the rest of the rules
-	for (const auto& [A, rhs] : substrRules)
-	{
-		auto varCovers = substringCovers(rhs, substrInds, substrRules);
+			unordered_map<Symbol, GrammarStringView<Symbol>> ruleChoices;
 
-		for (size_t i = 0; i < varCovers.systemMatrixSize(); i++)
-		{
-			for (Symbol coverSym : varCovers[i])
+			for (Symbol A : varSubset)
 			{
-				addSystemColumn(A, i, coverSym, h, 1.0);
-			}
-		}
-	}
+				const auto& symbolCovers = (A == S)
+					? substringSymbolCovers(s, substrInds, ruleChoices)
+					: substringSymbolCovers(substrRules[A], substrInds, ruleChoices);
 
-	// TU dispatch: if requested and the matrix is TU, relax integrality so HiGHS
-	// solves a continuous LP (simplex returns an integer vertex on a TU+integer LP,
-	// avoiding branch-and-bound). Otherwise keep columns integer => HiGHS MIP path.
-	if (doTUCheck)
-	{
-		const bool isTU = isSystemMatrixTU(h);
+				for (size_t i = 0; i < symbolCovers.size(); i++)
+				{
+					for (Symbol coverSym : symbolCovers[i])
+						addSystemColumn(A, i, coverSym, h, 1.0);
+				}
+
+			}
+
+			// TU dispatch: if requested and the matrix is TU, relax integrality so HiGHS
+			// solves a continuous LP (simplex returns an integer vertex on a TU+integer LP,
+			// avoiding branch-and-bound). Otherwise keep columns integer => HiGHS MIP path.
+			if (doTUCheck)
+			{
+				const bool isTU = isSystemMatrixTU(h);
 
 #ifdef NDEBUG
-		if (static_cast<size_t>(h.getNumCol()) <= dbgPrintMaxMatrixSize)
-			debugPrintSystemMatrix(h);
-		std::cout << "System matrix is " << (isTU ? "" : "NOT ")
-		          << "totally unimodular ("
-		          << h.getNumRow() << " rows x " << h.getNumCol() << " cols).\n";
+				if (static_cast<size_t>(h.getNumCol()) <= dbgPrintMaxMatrixSize)
+					debugPrintSystemMatrix(h);
+				std::cout << "System matrix is " << (isTU ? "" : "NOT ")
+					<< "totally unimodular ("
+					<< h.getNumRow() << " rows x " << h.getNumCol() << " cols).\n";
 #endif
 
-		if (isTU)
-		{
-			const HighsInt nCol = h.getNumCol();
-			for (HighsInt c = 0; c < nCol; c++)
-				h.changeColIntegrality(c, HighsVarType::kContinuous);
+				if (isTU)
+				{
+					const HighsInt nCol = h.getNumCol();
+					for (HighsInt c = 0; c < nCol; c++)
+						h.changeColIntegrality(c, HighsVarType::kContinuous);
+				}
+			}
+
+			h.run();
+
+			clearSystemColumns();
 		}
 	}
-
-	h.run();
 
 	return results;
 }
@@ -167,7 +169,7 @@ template<IntegralSymbol Symbol>
 inline void ZeroOneILPAlgorithm<Symbol>::readSystemSolution(const Highs& h)
 {
 	const std::vector<double>& sol = h.getSolution().col_value;
-	for (size_t i = 0; i < columnInd.systemMatrixSize(); i++)
+	for (size_t i = 0; i < columnInd.size(); i++)
 		solution[i] = sol[columnInd[i]] > 0.5;
 }
 
